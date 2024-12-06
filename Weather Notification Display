@@ -1,0 +1,96 @@
+// Function to show a notification
+function showNotification(message, type = "info") {
+  const notificationContainer = document.getElementById("notification-container");
+  
+  // Create a notification element
+  const notification = document.createElement("div");
+  notification.className = `notification ${type}`;
+  notification.textContent = message;
+
+  // Add the notification to the container
+  notificationContainer.appendChild(notification);
+
+  // Remove the notification after a delay
+  setTimeout(() => {
+    notification.remove();
+  }, 5000); // 5 seconds
+}
+
+// Example integration in existing code:
+
+// Success notification when a city is pinned
+function pinCity() {
+  const city = document.getElementById('city').value;
+  const weatherStatus = document.getElementById('weather-status').textContent;
+
+  if (!city) {
+    showNotification('City name cannot be empty.', 'warning');
+    return;
+  }
+
+  let ledClass = '';
+  if (weatherStatus.includes('clear')) {
+    ledClass = 'sunny';
+  } else if (weatherStatus.includes('rain')) {
+    ledClass = 'rainy';
+  } else if (weatherStatus.includes('storm')) {
+    ledClass = 'stormy';
+  } else {
+    ledClass = 'gray';
+  }
+
+  const cityData = { city, weatherStatus, ledClass };
+  pinnedCities.push(cityData);
+  updatePinnedCities();
+
+  document.getElementById('city').value = '';
+  document.getElementById('pinButton').disabled = true;
+
+  showNotification(`City ${city} pinned successfully!`, 'success');
+}
+
+// Error notification for failed weather fetch
+async function getWeather() {
+  const city = document.getElementById('city').value;
+  const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
+
+  try {
+    const response = await fetch(url);
+    const data = await response.json();
+
+    if (data.cod === 200) {
+      const weather = data.weather[0].main.toLowerCase();
+      const statusElement = document.getElementById('weather-status');
+      const ledElement = document.getElementById('led');
+      statusElement.textContent = `Weather in ${city}: ${data.weather[0].description}`;
+
+      ledElement.className = 'led';
+      if (weather.includes('clear')) {
+        ledElement.classList.add('sunny');
+      } else if (weather.includes('rain')) {
+        ledElement.classList.add('rainy');
+      } else if (weather.includes('storm')) {
+        ledElement.classList.add('stormy');
+      } else {
+        ledElement.classList.add('gray');
+        statusElement.textContent += ' (No alert)';
+      }
+
+      document.getElementById('pinButton').disabled = false;
+      showNotification('Weather data fetched successfully!', 'info');
+    } else {
+      showNotification('City not found. Please try again.', 'error');
+    }
+  } catch (error) {
+    console.error('Error fetching weather data:', error);
+    showNotification('An error occurred while fetching data.', 'error');
+  }
+}
+
+// Notification for city removal
+function removeCity(index) {
+  const cityName = pinnedCities[index].city;
+  pinnedCities.splice(index, 1);
+  updatePinnedCities();
+  showNotification(`City ${cityName} removed from pinned list.`, 'warning');
+}
